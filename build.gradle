@@ -1,0 +1,162 @@
+ext {
+    versionMajor = 0
+    versionMinor = 1
+    versionPoint = 0
+}
+
+buildscript {
+    ext {
+        jacksonDatabindVersion='2.12.1'
+        slf4jVersion='1.7.30'
+        logbackVersion='1.2.3'
+
+        restAssuredVersion='2.9.0'
+        junitJupiterVersion='5.7.1'
+        hamcrestVersion='2.1'
+        mockitoVersion='3.1.0'
+    }
+    repositories {
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/"}
+    }
+}
+
+apply plugin: "base"
+apply plugin: "jacoco"
+
+allprojects {
+    group 'com.hazse.executionlog'
+    version computeVersion()
+
+    buildscript {
+        repositories {
+            mavenCentral()
+            maven { url "https://plugins.gradle.org/m2/" }
+        }
+    }
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'jacoco'
+    apply plugin: 'maven-publish'
+
+    sourceCompatibility = '11'
+
+    test {
+        useJUnitPlatform()
+        testLogging {
+            exceptionFormat = 'full'
+        }
+    }
+
+    jacocoTestReport {
+        reports {
+            xml.enabled false
+            csv.enabled false
+            html.enabled true
+        }
+
+        afterEvaluate {
+            getClassDirectories().setFrom(files(classDirectories.files.collect {
+                fileTree(dir: it,
+                        exclude: ['com/hazse/executionlog/example/**'])
+            }))
+        }
+    }
+
+    dependencies {
+        testImplementation "org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}"
+        testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitJupiterVersion}"
+    }
+
+    task allDeps(type: DependencyReportTask) {}
+
+    task javadocJar(type: Jar) {
+        archiveClassifier = 'javadoc'
+        from(javadoc)
+    }
+
+    task sourceJar(type: Jar) {
+        archiveClassifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    publishing {
+        repositories {
+            maven {
+                url "$rootProject.buildDir/repository"
+            }
+        }
+        publications {
+            mavenJava(MavenPublication) {
+                from components.java
+                artifact sourceJar
+                artifact javadocJar
+                versionMapping {
+                    usage('java-api') {
+                        fromResolutionOf('runtimeClasspath')
+                    }
+                    usage('java-runtime') {
+                        fromResolutionResult()
+                    }
+                }
+            }
+        }
+    }
+}
+
+task mergeCodeCoverageData(type: JacocoMerge) {
+    destinationFile = file("$buildDir/jacoco/allTestCoverage.exec")
+    executionData = project.fileTree(dir: '.', include:'**/build/jacoco/test.exec')
+}
+
+task codeCoverageReport(type: JacocoReport) {
+    getAdditionalSourceDirs().setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
+    getSourceDirectories().setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
+    getClassDirectories().setFrom(files(subprojects.sourceSets.main.output))
+    getExecutionData().setFrom("$buildDir/jacoco/allTestCoverage.exec")
+    reports {
+        html.enabled = true
+        html.destination = new File("${buildDir}/reports/jacoco")
+        xml.enabled = true
+        csv.enabled = false
+    }
+    onlyIf = {
+        true
+    }
+    doFirst {
+        getExecutionData().setFrom(files(executionData.findAll {
+            it.exists()
+        }))
+    }
+    afterEvaluate {
+        getClassDirectories().setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it,
+                    exclude: ['com/hazse/executionlog/example/**'])
+        }))
+    }
+}
+
+codeCoverageReport.dependsOn(mergeCodeCoverageData)
+
+task testReport(type: TestReport) {
+    destinationDir = file("$buildDir/reports/allTests")
+    // Include the results from the 'test' task in all subprojects
+    reportOn subprojects.collect { it.tasks.withType(Test) }
+}
+
+task versionTxt() {
+    doLast {
+        file("$projectDir/version.txt").text = String.format('%d.%d.%d', versionMajor, versionMinor, versionPoint)
+    }
+}
+
+def computeVersion() {
+    // Version format: <major>.<minor>.<point>.<build>
+    return String.format('%d.%d.%d', versionMajor, versionMinor, versionPoint)
+}

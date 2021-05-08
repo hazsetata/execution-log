@@ -1,0 +1,7 @@
+dependencies {
+    implementation project(':execution-log-jackson')
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: jacksonDatabindVersion
+    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: jacksonDatabindVersion
+
+    testImplementation project(':execution-log-inmemory')
+}

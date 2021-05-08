@@ -1,0 +1,8 @@
+rootProject.name = 'execution-log'
+
+include 'execution-log-core'
+include 'execution-log-inmemory'
+include 'execution-log-concurrent'
+include 'execution-log-jackson'
+include 'execution-log-text'
+include 'execution-log-jsonl'

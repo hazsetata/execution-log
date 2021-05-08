@@ -1,0 +1,8 @@
+dependencies {
+    api project(':execution-log-core')
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: jacksonDatabindVersion
+    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: jacksonDatabindVersion
+
+    testImplementation project(':execution-log-inmemory')
+    testImplementation group: 'org.skyscreamer', name: 'jsonassert', version: '1.5.0'
+}
