@@ -89,7 +89,12 @@ subprojects {
     publishing {
         repositories {
             maven {
-                url "$rootProject.buildDir/repository"
+                name = "GitHubPackages"
+                url = "https://maven.pkg.github.com/hazsetata/execution-log"
+                credentials {
+                    username = System.getenv("GITHUB_ACTOR")
+                    password = System.getenv("GITHUB_TOKEN")
+                }
             }
         }
         publications {
